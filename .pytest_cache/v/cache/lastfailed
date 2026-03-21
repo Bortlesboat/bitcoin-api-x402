@@ -1,0 +1,6 @@
+{
+  "tests/test_middleware.py::TestAnonymousRequests::test_expensive_endpoint_402": true,
+  "tests/test_middleware.py::TestPricingTiers::test_cheap_endpoint_price": true,
+  "tests/test_middleware.py::TestPricingTiers::test_medium_endpoint_price": true,
+  "tests/test_middleware.py::TestPricingTiers::test_expensive_endpoint_price": true
+}
