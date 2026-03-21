@@ -23,6 +23,20 @@ class TestGetEndpointPriceUsd:
     def test_nextblock_paid(self):
         assert get_endpoint_price_usd("/api/v1/mining/nextblock") == "$0.01"
 
+    # --- Mid-tier ($0.005) endpoints ---
+
+    def test_observatory_scoreboard_paid(self):
+        assert get_endpoint_price_usd("/api/v1/fees/observatory/scoreboard") == "$0.005"
+
+    def test_observatory_block_stats_paid(self):
+        assert get_endpoint_price_usd("/api/v1/fees/observatory/block-stats") == "$0.005"
+
+    def test_observatory_estimates_paid(self):
+        assert get_endpoint_price_usd("/api/v1/fees/observatory/estimates") == "$0.005"
+
+    def test_fees_landscape_paid(self):
+        assert get_endpoint_price_usd("/api/v1/fees/landscape") == "$0.005"
+
     # --- Everything else is FREE ---
 
     def test_health_free(self):
@@ -77,9 +91,9 @@ class TestEndpointPricesTable:
             assert ep.description, f"Empty description for {ep.pattern}"
 
     def test_only_premium_endpoints_priced(self):
-        """Only 3 endpoint patterns should be priced."""
+        """Only 5 endpoint patterns should be priced."""
         priced = [ep for ep in ENDPOINT_PRICES if ep.price_usd is not None]
-        assert len(priced) == 3
+        assert len(priced) == 5
 
     def test_no_free_entries_in_table(self):
         """Table should only contain paid endpoints. Unlisted = free."""

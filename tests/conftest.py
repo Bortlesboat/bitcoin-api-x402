@@ -62,6 +62,14 @@ def _create_test_app(
     async def ai_chat():
         return {"data": {"response": "test"}}
 
+    @app.get("/api/v1/fees/observatory/scoreboard")
+    async def observatory_scoreboard():
+        return {"data": {"providers": []}}
+
+    @app.get("/api/v1/fees/landscape")
+    async def fees_landscape():
+        return {"data": {"landscape": {}}}
+
     return app
 
 

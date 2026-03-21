@@ -10,6 +10,29 @@ from .pricing import get_endpoint_price_usd
 
 log = logging.getLogger(__name__)
 
+# Injectable payment logger — set via set_payment_logger()
+_payment_logger = None
+
+
+def set_payment_logger(fn):
+    """Inject a callback for x402 payment analytics.
+
+    The callback signature is:
+        fn(endpoint, price_usd, status, client_ip, payment_id, user_agent)
+    """
+    global _payment_logger
+    _payment_logger = fn
+
+
+def _log_payment(endpoint, price_usd, status, client_ip="", payment_id="", user_agent=""):
+    """Call the injected logger if set. Never raises."""
+    if _payment_logger is not None:
+        try:
+            _payment_logger(endpoint, price_usd, status, client_ip, payment_id, user_agent)
+        except Exception:
+            log.debug("x402 payment logger error", exc_info=True)
+
+
 # Payment header used by the x402 protocol
 X402_PAYMENT_HEADER = "X-PAYMENT"
 
@@ -26,6 +49,25 @@ try:
     X402_PAYMENT_HEADER = _SDK_PAYMENT_HEADER
 except ImportError:
     pass
+
+
+# Cached x402 server instance (initialized once, reused for all requests)
+_cached_server = None
+_cached_facilitator_url = None
+
+
+def _get_cached_server(facilitator_url: str):
+    """Return a cached x402ResourceServerSync, creating it on first call."""
+    global _cached_server, _cached_facilitator_url
+    if _cached_server is None or _cached_facilitator_url != facilitator_url:
+        from x402 import x402ResourceServerSync
+        from x402.http import HTTPFacilitatorClientSync
+        facilitator = HTTPFacilitatorClientSync(base_url=facilitator_url)
+        _cached_server = x402ResourceServerSync(facilitator)
+        _cached_server.initialize()
+        _cached_facilitator_url = facilitator_url
+        log.info("x402: Initialized verifier (facilitator=%s)", facilitator_url)
+    return _cached_server
 
 
 def _parse_price_to_dollars(price_str: str) -> str:
@@ -101,16 +143,9 @@ async def _verify_x402_payment(
     """
     if _HAS_X402_SDK:
         try:
-            from x402 import (
-                x402ResourceServerSync,
-                PaymentRequirementsV1,
-                parse_payment_payload,
-            )
-            from x402.http import HTTPFacilitatorClientSync
+            from x402 import PaymentRequirementsV1, parse_payment_payload
 
-            facilitator = HTTPFacilitatorClientSync(base_url=facilitator_url)
-            server = x402ResourceServerSync(facilitator)
-            server.initialize()
+            server = _get_cached_server(facilitator_url)
 
             requirements = PaymentRequirementsV1(
                 scheme=scheme,
@@ -125,18 +160,20 @@ async def _verify_x402_payment(
             result = server.verify(payload, requirements)
 
             if result.is_valid:
-                return True, f"x402:{hash(payment_header) & 0xFFFFFFFF:08x}"
+                import hashlib
+                pid = hashlib.sha256(payment_header.encode()).hexdigest()[:16]
+                return True, f"x402:{pid}"
             return False, result.invalid_reason or "payment verification failed"
         except Exception as e:
             log.warning("x402: SDK verification error: %s", e)
             return False, str(e)
     else:
-        # No SDK -- accept payment header presence for dev/testing
-        log.warning(
-            "x402 SDK not available; accepting payment header at face value. "
+        # No SDK -- FAIL CLOSED. Do not accept unverified payments.
+        log.error(
+            "x402 SDK not installed. Cannot verify payments. "
             "Install x402[fastapi] for production use."
         )
-        return True, "x402-dev"
+        return False, "x402 SDK not installed -- cannot verify payment"
 
 
 def enable_x402(
@@ -169,7 +206,7 @@ def enable_x402(
     _scheme = scheme if scheme != "exact" else cfg.scheme
 
     if not _pay_to:
-        log.warning(
+        raise ValueError(
             "x402: No pay-to address configured. "
             "Set X402_PAY_TO_ADDRESS or pass pay_to= to enable_x402()."
         )
@@ -202,10 +239,13 @@ def enable_x402(
                 scheme=_scheme,
                 resource=request.url.path,
             )
+            _client_ip = request.client.host if request.client else ""
+            _ua = request.headers.get("user-agent", "")
             if valid:
                 request.state.tier = "pro"
                 request.state.key_hash = f"x402:{payment_id}"
                 log.info("x402: Valid payment for %s", request.url.path)
+                _log_payment(request.url.path, price_usd, "paid", _client_ip, payment_id, _ua)
                 return await call_next(request)
             else:
                 log.warning(
@@ -213,6 +253,7 @@ def enable_x402(
                     request.url.path,
                     payment_id,
                 )
+                _log_payment(request.url.path, price_usd, "failed", _client_ip, payment_id, _ua)
                 return JSONResponse(
                     status_code=401,
                     content={
@@ -225,6 +266,9 @@ def enable_x402(
                 )
 
         # 5. No payment, priced endpoint -- return 402 with payment requirements
+        _client_ip = request.client.host if request.client else ""
+        _ua = request.headers.get("user-agent", "")
+        _log_payment(request.url.path, price_usd, "challenged", _client_ip, "", _ua)
         request_id = getattr(request.state, "request_id", "")
         return _build_payment_required_response(
             price_usd=price_usd,

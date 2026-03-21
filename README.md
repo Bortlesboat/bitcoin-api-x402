@@ -25,7 +25,6 @@ enable_x402(app)
 | `X402_NETWORK` | No | `eip155:8453` | Base mainnet chain ID |
 | `X402_FACILITATOR_URL` | No | `https://x402.org/facilitator` | x402 facilitator |
 | `X402_SCHEME` | No | `exact` | Payment scheme |
-| `X402_DEFAULT_PRICE` | No | `$0.001` | Fallback price |
 
 Or pass directly:
 

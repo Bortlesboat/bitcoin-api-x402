@@ -20,6 +20,9 @@ ENDPOINT_PRICES: list[EndpointPrice] = [
     EndpointPrice(r"/api/v1/ai/", "$0.01", "AI-powered analysis (LLM calls)"),
     EndpointPrice(r"/api/v1/broadcast$", "$0.01", "Broadcast transaction"),
     EndpointPrice(r"/api/v1/mining/nextblock$", "$0.01", "Next block prediction"),
+    # Mid-tier — significant computation or external DB reads
+    EndpointPrice(r"/api/v1/fees/observatory/", "$0.005", "Fee observatory analytics"),
+    EndpointPrice(r"/api/v1/fees/landscape$", "$0.005", "Full fee landscape computation"),
 ]
 
 # Compile patterns once
