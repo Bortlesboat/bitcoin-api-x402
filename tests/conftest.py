@@ -30,6 +30,14 @@ def _create_test_app(
     async def fees():
         return {"data": {"fast": 10, "medium": 5, "slow": 1}}
 
+    @app.get("/api/v1/fees/plan")
+    async def fees_plan():
+        return {"data": {"recommendation": "wait"}}
+
+    @app.get("/api/v1/fees/savings")
+    async def fees_savings():
+        return {"data": {"savings": {"sats": 1000}}}
+
     @app.get("/api/v1/blocks/latest")
     async def blocks_latest():
         return {"data": {"height": 800000}}

@@ -19,7 +19,7 @@ class X402Config:
 
     pay_to_address: str = ""
     network: str = "eip155:8453"
-    facilitator_url: str = "https://x402.org/facilitator"
+    facilitator_url: str = "https://www.x402.org/facilitator"
     scheme: str = "exact"
 
     def validate(self) -> None:
@@ -41,6 +41,6 @@ def load_config() -> X402Config:
     return X402Config(
         pay_to_address=os.getenv("X402_PAY_TO_ADDRESS", ""),
         network=os.getenv("X402_NETWORK", "eip155:8453"),
-        facilitator_url=os.getenv("X402_FACILITATOR_URL", "https://x402.org/facilitator"),
+        facilitator_url=os.getenv("X402_FACILITATOR_URL", "https://www.x402.org/facilitator"),
         scheme=os.getenv("X402_SCHEME", "exact"),
     )

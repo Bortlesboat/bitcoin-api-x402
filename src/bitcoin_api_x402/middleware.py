@@ -85,7 +85,11 @@ def _build_payment_required_response(
     path: str,
     request_id: str,
 ) -> JSONResponse:
-    """Build a 402 Payment Required response with x402 payment requirements."""
+    """Build a 402 Payment Required response with x402 payment requirements.
+
+    Returns both legacy ``paymentRequirements`` (for the Coinbase x402 SDK)
+    and the ``accepts`` array format (for x402scan discovery/registration).
+    """
     amount = _parse_price_to_dollars(price_usd)
 
     payment_requirements = {
@@ -113,6 +117,7 @@ def _build_payment_required_response(
                 f"Send an x402 payment via the {X402_PAYMENT_HEADER} header.",
                 "request_id": request_id,
             },
+            "accepts": [payment_requirements],
             "paymentRequirements": payment_requirements,
         },
     )
@@ -181,7 +186,7 @@ def enable_x402(
     *,
     pay_to: str = "",
     network: str = "eip155:8453",
-    facilitator_url: str = "https://x402.org/facilitator",
+    facilitator_url: str = "https://www.x402.org/facilitator",
     scheme: str = "exact",
 ) -> None:
     """Enable x402 stablecoin micropayments on a FastAPI app.
@@ -200,7 +205,7 @@ def enable_x402(
     _network = network if network != "eip155:8453" else cfg.network
     _facilitator_url = (
         facilitator_url
-        if facilitator_url != "https://x402.org/facilitator"
+        if facilitator_url != "https://www.x402.org/facilitator"
         else cfg.facilitator_url
     )
     _scheme = scheme if scheme != "exact" else cfg.scheme

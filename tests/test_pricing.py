@@ -63,6 +63,18 @@ class TestGetEndpointPriceUsd:
     def test_mempool_free(self):
         assert get_endpoint_price_usd("/api/v1/mempool") is None
 
+    def test_mempool_info_free(self):
+        assert get_endpoint_price_usd("/api/v1/mempool/info") is None
+
+    def test_mempool_tx_free(self):
+        assert get_endpoint_price_usd("/api/v1/mempool/tx/abc123") is None
+
+    def test_fees_plan_free(self):
+        assert get_endpoint_price_usd("/api/v1/fees/plan") is None
+
+    def test_fees_savings_free(self):
+        assert get_endpoint_price_usd("/api/v1/fees/savings") is None
+
     def test_mining_free(self):
         assert get_endpoint_price_usd("/api/v1/mining") is None
 
@@ -91,7 +103,7 @@ class TestEndpointPricesTable:
             assert ep.description, f"Empty description for {ep.pattern}"
 
     def test_only_premium_endpoints_priced(self):
-        """Only 5 endpoint patterns should be priced."""
+        """Only the narrow premium lane should be priced."""
         priced = [ep for ep in ENDPOINT_PRICES if ep.price_usd is not None]
         assert len(priced) == 5
 

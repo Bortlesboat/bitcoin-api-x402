@@ -56,6 +56,14 @@ class TestAnonymousRequests:
         resp = client.get("/api/v1/mempool")
         assert resp.status_code == 200
 
+    def test_fees_plan_is_free(self, client):
+        resp = client.get("/api/v1/fees/plan")
+        assert resp.status_code == 200
+
+    def test_fees_savings_is_free(self, client):
+        resp = client.get("/api/v1/fees/savings")
+        assert resp.status_code == 200
+
     def test_unknown_endpoint_passes_through(self, client):
         """Unknown endpoints are free by default (no price match)."""
         resp = client.get("/api/v1/nonexistent")

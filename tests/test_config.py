@@ -13,7 +13,7 @@ class TestX402Config:
         cfg = X402Config()
         assert cfg.pay_to_address == ""
         assert cfg.network == "eip155:8453"
-        assert cfg.facilitator_url == "https://x402.org/facilitator"
+        assert cfg.facilitator_url == "https://www.x402.org/facilitator"
         assert cfg.scheme == "exact"
 
     def test_validate_missing_address(self):

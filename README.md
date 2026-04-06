@@ -23,7 +23,7 @@ enable_x402(app)
 |----------|----------|---------|-------------|
 | `X402_PAY_TO_ADDRESS` | Yes | — | EVM wallet address for USDC |
 | `X402_NETWORK` | No | `eip155:8453` | Base mainnet chain ID |
-| `X402_FACILITATOR_URL` | No | `https://x402.org/facilitator` | x402 facilitator |
+| `X402_FACILITATOR_URL` | No | `https://www.x402.org/facilitator` | x402 facilitator |
 | `X402_SCHEME` | No | `exact` | Payment scheme |
 
 Or pass directly:
@@ -41,8 +41,10 @@ Almost everything is **free**. Only endpoints that cost real resources to serve 
 | $0.01 | `/ai/*` | LLM inference costs |
 | $0.01 | `/broadcast` | Node relay resources |
 | $0.01 | `/mining/nextblock` | Heavy computation |
+| $0.005 | `/fees/observatory/*` | Multi-source fee analytics |
+| $0.005 | `/fees/landscape` | Deeper premium fee landscape |
 
-Everything else (fees, blocks, txs, mempool, mining, network, etc.) is free for all users. Requests with an `X-API-Key` header bypass x402 payment entirely.
+Everything else stays free for user acquisition and broad adoption, including `/fees/plan`, `/fees/savings`, `/mempool`, blocks, txs, mining, and network data. Requests with an `X-API-Key` header bypass x402 payment entirely.
 
 ## How it works
 
