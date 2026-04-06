@@ -87,38 +87,41 @@ def _build_payment_required_response(
     path: str,
     request_id: str,
 ) -> JSONResponse:
-    """Build a 402 Payment Required response with x402 payment requirements.
+    """Build a 402 Payment Required response (x402 v2 wire format).
 
-    Uses the x402 SDK v2 format: base64-encoded ``PaymentRequired`` object in
-    the ``Payment-Required`` header, plus the same data in the JSON body for
-    backwards compatibility.
+    All payment data goes in the base64-encoded ``Payment-Required`` header.
+    Body is a minimal human-readable error. This matches the format used by
+    all successfully-registered servers on x402scan.
     """
     # USDC on Base
     usdc_asset = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
     amount = _parse_price_to_dollars(price_usd)
 
-    accept_entry = {
-        "scheme": scheme,
-        "network": network,
-        "maxAmountRequired": amount,
-        "resource": path,
-        "description": f"Satoshi API: {path}",
-        "mimeType": "application/json",
-        "payTo": pay_to,
-        "maxTimeoutSeconds": 60,
-        "asset": usdc_asset,
-        "outputSchema": None,
-        "extra": {
-            "facilitatorUrl": facilitator_url,
-        },
-    }
-
     payment_required = {
-        "x402Version": 1,
-        "accepts": [accept_entry],
+        "x402Version": 2,
+        "resource": {
+            "url": f"https://bitcoinsapi.com{path}",
+            "method": "POST" if "broadcast" in path else "GET",
+            "description": f"Satoshi API: {path}",
+            "mimeType": "application/json",
+        },
+        "accepts": [
+            {
+                "scheme": scheme,
+                "network": network,
+                "amount": amount,
+                "asset": usdc_asset,
+                "payTo": pay_to,
+                "maxTimeoutSeconds": 300,
+                "extra": {
+                    "name": "USD Coin",
+                    "version": "2",
+                    "facilitatorUrl": facilitator_url,
+                },
+            }
+        ],
     }
 
-    # Base64-encode for the Payment-Required header (x402 v2 wire format)
     header_value = base64.b64encode(
         json.dumps(payment_required, separators=(",", ":")).encode()
     ).decode()
@@ -133,7 +136,6 @@ def _build_payment_required_response(
                 f"Send an x402 payment via the {X402_PAYMENT_HEADER} header.",
                 "request_id": request_id,
             },
-            **payment_required,
         },
     )
     resp.headers["Payment-Required"] = header_value

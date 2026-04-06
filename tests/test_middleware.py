@@ -15,12 +15,15 @@ class TestAnonymousRequests:
         body = resp.json()
         assert body["error"]["status"] == 402
         assert body["error"]["title"] == "Payment Required"
-        assert "accepts" in body
-        assert body["x402Version"] == 1
-        assert body["accepts"][0]["scheme"] == "exact"
-        assert body["accepts"][0]["network"] == "eip155:8453"
         assert "X-Price-USD" in resp.headers
+        # V2: payment data in Payment-Required header, not body
         assert "Payment-Required" in resp.headers
+        import base64, json as _json
+        pr = _json.loads(base64.b64decode(resp.headers["Payment-Required"]))
+        assert pr["x402Version"] == 2
+        assert pr["accepts"][0]["scheme"] == "exact"
+        assert pr["accepts"][0]["network"] == "eip155:8453"
+        assert "amount" in pr["accepts"][0]
 
     def test_broadcast_returns_402(self, client):
         resp = client.get("/api/v1/broadcast")
@@ -73,10 +76,12 @@ class TestAnonymousRequests:
     def test_402_includes_payment_requirements(self, client):
         resp = client.get("/api/v1/ai/chat")
         assert resp.status_code == 402
-        reqs = resp.json()["accepts"][0]
+        import base64, json as _json
+        pr = _json.loads(base64.b64decode(resp.headers["Payment-Required"]))
+        reqs = pr["accepts"][0]
         assert reqs["payTo"] == "0xAbCdEf0123456789AbCdEf0123456789AbCdEf01"
-        assert reqs["resource"] == "/api/v1/ai/chat"
-        assert "maxAmountRequired" in reqs
+        assert pr["resource"]["url"].endswith("/api/v1/ai/chat")
+        assert "amount" in reqs
 
 
 class TestApiKeyBypass:
@@ -156,17 +161,22 @@ class TestX402Payment:
 class TestPricingTiers:
     """All premium endpoints should have the same price ($0.01)."""
 
+    def _get_amount(self, resp):
+        import base64, json as _json
+        pr = _json.loads(base64.b64decode(resp.headers["Payment-Required"]))
+        return pr["accepts"][0]["amount"]
+
     def test_ai_endpoint_price(self, client):
         resp = client.get("/api/v1/ai/explain")
         assert resp.status_code == 402
-        assert resp.json()["accepts"][0]["maxAmountRequired"] == "0.01"
+        assert self._get_amount(resp) == "0.01"
 
     def test_broadcast_price(self, client):
         resp = client.get("/api/v1/broadcast")
         assert resp.status_code == 402
-        assert resp.json()["accepts"][0]["maxAmountRequired"] == "0.01"
+        assert self._get_amount(resp) == "0.01"
 
     def test_nextblock_price(self, client):
         resp = client.get("/api/v1/mining/nextblock")
         assert resp.status_code == 402
-        assert resp.json()["accepts"][0]["maxAmountRequired"] == "0.01"
+        assert self._get_amount(resp) == "0.01"
