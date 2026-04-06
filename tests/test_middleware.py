@@ -15,11 +15,12 @@ class TestAnonymousRequests:
         body = resp.json()
         assert body["error"]["status"] == 402
         assert body["error"]["title"] == "Payment Required"
-        assert "paymentRequirements" in body
-        assert body["paymentRequirements"]["x402Version"] == 1
-        assert body["paymentRequirements"]["scheme"] == "exact"
-        assert body["paymentRequirements"]["network"] == "eip155:8453"
+        assert "accepts" in body
+        assert body["x402Version"] == 1
+        assert body["accepts"][0]["scheme"] == "exact"
+        assert body["accepts"][0]["network"] == "eip155:8453"
         assert "X-Price-USD" in resp.headers
+        assert "Payment-Required" in resp.headers
 
     def test_broadcast_returns_402(self, client):
         resp = client.get("/api/v1/broadcast")
@@ -72,7 +73,7 @@ class TestAnonymousRequests:
     def test_402_includes_payment_requirements(self, client):
         resp = client.get("/api/v1/ai/chat")
         assert resp.status_code == 402
-        reqs = resp.json()["paymentRequirements"]
+        reqs = resp.json()["accepts"][0]
         assert reqs["payTo"] == "0xAbCdEf0123456789AbCdEf0123456789AbCdEf01"
         assert reqs["resource"] == "/api/v1/ai/chat"
         assert "maxAmountRequired" in reqs
@@ -158,14 +159,14 @@ class TestPricingTiers:
     def test_ai_endpoint_price(self, client):
         resp = client.get("/api/v1/ai/explain")
         assert resp.status_code == 402
-        assert resp.json()["paymentRequirements"]["maxAmountRequired"] == "0.01"
+        assert resp.json()["accepts"][0]["maxAmountRequired"] == "0.01"
 
     def test_broadcast_price(self, client):
         resp = client.get("/api/v1/broadcast")
         assert resp.status_code == 402
-        assert resp.json()["paymentRequirements"]["maxAmountRequired"] == "0.01"
+        assert resp.json()["accepts"][0]["maxAmountRequired"] == "0.01"
 
     def test_nextblock_price(self, client):
         resp = client.get("/api/v1/mining/nextblock")
         assert resp.status_code == 402
-        assert resp.json()["paymentRequirements"]["maxAmountRequired"] == "0.01"
+        assert resp.json()["accepts"][0]["maxAmountRequired"] == "0.01"
